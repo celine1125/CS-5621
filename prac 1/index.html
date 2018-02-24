@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>CS 4621: PPA1 -- WebGL Ray</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/cs4620.css" rel="stylesheet">
+    <link href="css/jquery-ui.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+<div class="container">
+    <h1>CS 4621 PPA1 <span class="subtitle">WebGL Ray</span></h1>
+
+    <div align="center">
+        <canvas id="webglCanvas" style="border: none; background-color: black;" width="512" height="512"></canvas>
+    </div>
+
+    <br>
+
+    <table class="table table-bordered">
+        <tr>
+            <td align="right">Render Mode:</td>
+            <td>
+                <select id="renderMode">
+                    <option value="FACE_COLOR">Face Color</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="SHADOW">Shadow</option>
+                    <option value="FULL">Full Shading</option>
+                </select>
+            </td>
+            <td align="right">Scene:</td>
+            <td>
+                <select id="scene">
+                    <option value="triangle">Triangle Scene</option>
+                    <option value="cube">Cube Scene</option>
+                    <option value="full">Full Scene</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="4" align="center"><b>Camera Settings</b></td>
+        </tr>
+        <tr>
+            <td align="right">Camera Eye:</td>
+            <td>
+                X = <input type="text" id="cameraEyeX" value="1.0">
+            </td>
+            <td>
+                Y = <input type="text" id="cameraEyeY" value="1.0">
+            </td>
+            <td>
+                Z = <input type="text" id="cameraEyeZ" value="1.0">
+            </td>
+        </tr>
+        <tr>
+            <td align="right">Camera Target:</td>
+            <td>
+                X = <input type="text" id="cameraTargetX" value="0.0">
+            </td>
+            <td>
+                Y = <input type="text" id="cameraTargetY" value="0.0">
+            </td>
+            <td>
+                Z = <input type="text" id="cameraTargetZ" value="0.0">
+            </td>
+        </tr>
+        <tr>
+            <td align="right">Camera Up:</td>
+            <td>
+                X = <input type="text" id="cameraUpX" value="0.0">
+            </td>
+            <td>
+                Y = <input type="text" id="cameraUpY" value="1.0">
+            </td>
+            <td>
+                Z = <input type="text" id="cameraUpZ" value="0.0">
+            </td>
+        </tr>
+        <tr>
+            <td align="right">Camera Field of View:</td>
+            <td colspan="3">
+                <input type="text" id="cameraFov" value="30.0">
+            </td>
+        </tr>
+        <tr>
+            <td colspan="4" align="center"><b>Light Settings</b></td>
+        </tr>
+        <tr>
+            <td align="right">Light Position:</td>
+            <td>
+                X = <input type="text" id="lightPositionX" value="1.0">
+            </td>
+            <td>
+                Y = <input type="text" id="lightPositionY" value="1.0">
+            </td>
+            <td>
+                Z = <input type="text" id="lightPositionZ" value="1.0">
+            </td>
+        </tr>
+        <tr>
+            <td align="right">Light Intensity:</td>
+            <td>
+                R = <input type="text" id="lightIntensityR" value="1.0">
+            </td>
+            <td>
+                G = <input type="text" id="lightIntensityG" value="1.0">
+            </td>
+            <td>
+                B = <input type="text" id="lightIntensityB" value="1.0">
+            </td>
+        </tr>
+        <tr>
+            <td colspan="4" align="center"><b>Background Settings</b></td>
+        </tr>
+        <tr>
+            <td align="right">Background Color:</td>
+            <td>
+                R = <input type="text" id="backgroundColorR" value="0.0">
+            </td>
+            <td>
+                G = <input type="text" id="backgroundColorG" value="0.0">
+            </td>
+            <td>
+                B = <input type="text" id="backgroundColorB" value="0.0">
+            </td>
+        </tr>
+    </table>
+
+    <h2>Team Members</h2>
+
+    <ul>
+        <li>Please list your team members with NetID in this unordered list.</li>
+        <li>Jiamin Zeng (jz863)</li>
+        <li>Runqian Huang (rh627)</li>
+        <li>Aidan Fitzgerald (acf67)</li>
+    </ul>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="js/jquery-3.1.1.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="scenes.js"></script>
+
+
+<script>
+    function initGui() {
+        ["cameraEye", "cameraTarget", "cameraUp"].forEach(function (name) {
+            ["X", "Y", "Z"].forEach(function (axis) {
+                var selector = "#" + name + axis;
+                $(selector).spinner({
+                    min: -10.0,
+                    max: 10.0,
+                    step: 0.01,
+                });
+            });
+        });
+        $("#cameraFov").spinner({
+            min: 1.0,
+            max: 80.0,
+            step: 1.0
+        });
+        ["lightPositionX", "lightPositionY", "lightPositionZ"].forEach(function (name) {
+            $("#" + name).spinner({
+                min: -10.0,
+                max: 10.0,
+                step: 0.01,
+            });
+        });
+        ["lightIntensityR", "lightIntensityG", "lightIntensityB"].forEach(function (name) {
+            $("#" + name).spinner({
+                min: 0.0,
+                max: 500.0,
+                step: 0.01,
+            });
+        });
+        ["backgroundColorR", "backgroundColorG", "backgroundColorB"].forEach(function (name) {
+            $("#" + name).spinner({
+                min: 0.0,
+                max: 1.0,
+                step: 0.01,
+            });
+        });
+    }
+    initGui();
+    var renderModes = {
+        "FACE_COLOR": 1,
+        "NORMAL": 2,
+        "SHADOW": 3,
+        "FULL": 4
+    };
+    var scenes = createScenes();
+    function setSceneGui(scene) {
+        $("#cameraEyeX").spinner("value", scene.initialCamera.eye[0]);
+        $("#cameraEyeY").spinner("value", scene.initialCamera.eye[1]);
+        $("#cameraEyeZ").spinner("value", scene.initialCamera.eye[2]);
+        $("#cameraTargetX").spinner("value", scene.initialCamera.target[0]);
+        $("#cameraTargetY").spinner("value", scene.initialCamera.target[1]);
+        $("#cameraTargetZ").spinner("value", scene.initialCamera.target[2]);
+        $("#cameraUpX").spinner("value", scene.initialCamera.up[0]);
+        $("#cameraUpY").spinner("value", scene.initialCamera.up[1]);
+        $("#cameraUpZ").spinner("value", scene.initialCamera.up[2]);
+        $("#cameraFov").spinner("value", scene.initialCamera.fov);
+        $("#lightPositionX").spinner('value', scene.initialLight.position[0]);
+        $("#lightPositionY").spinner('value', scene.initialLight.position[1]);
+        $("#lightPositionZ").spinner('value', scene.initialLight.position[2]);
+        $("#lightIntensityR").spinner('value', scene.initialLight.intensity[0]);
+        $("#lightIntensityG").spinner('value', scene.initialLight.intensity[1]);
+        $("#lightIntensityB").spinner('value', scene.initialLight.intensity[2]);
+    }
+    function getScene() {
+        return scenes[$("#scene").val()];
+    }
+    $("#scene").change(function () {
+        setSceneGui(getScene());
+    });
+    setSceneGui(getScene());
+    function getRenderMode() {
+        return renderModes[$("#renderMode").val()];
+    }
+    function getBackgroundColor() {
+        return [
+            $("#backgroundColorR").spinner("value"),
+            $("#backgroundColorG").spinner("value"),
+            $("#backgroundColorB").spinner("value")
+        ];
+    }
+    function getCameraEye() {
+        return [
+            $("#cameraEyeX").spinner("value"),
+            $("#cameraEyeY").spinner("value"),
+            $("#cameraEyeZ").spinner("value")
+        ]
+    }
+    function getCameraTarget() {
+        return [
+            $("#cameraTargetX").spinner("value"),
+            $("#cameraTargetY").spinner("value"),
+            $("#cameraTargetZ").spinner("value")
+        ];
+    }
+    function getCameraUp() {
+        return [
+            $("#cameraUpX").spinner("value"),
+            $("#cameraUpY").spinner("value"),
+            $("#cameraUpZ").spinner("value")
+        ];
+    }
+    function getCameraFov() {
+        return $("#cameraFov").spinner("value")
+    }
+    function getLightPosition() {
+        return [
+            $("#lightPositionX").spinner("value"),
+            $("#lightPositionY").spinner("value"),
+            $("#lightPositionZ").spinner("value")
+        ];
+    }
+    function getLightIntensity() {
+        return [
+            $("#lightIntensityR").spinner("value"),
+            $("#lightIntensityG").spinner("value"),
+            $("#lightIntensityB").spinner("value")
+        ];
+    }
+    //
+    // TODO: Fill you code here and elsewhere in the HTML.
+    //
+</script>
+
+<script id = "vertexShader" type="x-shader/x-vertex">
+  attribute vec3 vert_position;
+  attribute vec2 vert_texCoord;
+  varying vec2 geom_texCoord;
+  void main() {
+    gl_Position = vec4(vert_position, 1.0);
+    geom_texCoord = vert_texCoord;
+  }
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+  precision highp float;
+
+  //the maximum number of triangles
+  const int MAX_TRIANGLES = 132;
+
+  //parameters read in
+  varying vec2 geom_texCoord;
+  uniform int mode;
+  uniform float r;
+  uniform float g;
+  uniform float b;
+  uniform vec3 eye;
+  uniform vec3 target;
+  uniform vec3 up;
+  uniform float Fov;
+  uniform int numTriangles;
+  uniform float vertexTextureSize;
+  uniform float colorTextureSize;
+  uniform ivec4 triangleIndices[MAX_TRIANGLES];
+  uniform sampler2D vertexPositions;
+  uniform sampler2D triangleColors;
+  uniform vec3 lightposition;
+  uniform vec3 lightintensity;
+
+  // get the direction of the camera ray of certain pixel
+  void getdirection (vec3 eye, vec3 target, vec3 up, float Fov, vec2 geomtexCoord, out vec3 dir)
+  {
+    vec3 x, y, z;
+    float s;
+    float u,v;
+    z = eye - target;
+    z = z * (1.0 / length(z));
+    x = cross(up, z);
+    x = x * (1.0 / length(x));
+    y = cross(z, x);
+    y = y * (1.0 / length(y));
+    s = tan(3.14159265359 * Fov / 360.0);
+    u = 2.0 * (geomtexCoord.x - 0.5);
+    v = 2.0 * (geomtexCoord.y - 0.5);
+    dir = x * u * s + y * v * s - z;
+    dir = dir * (1.0 / length(dir));
+  }
+
+  //compute matrix determines
+  void getTriangleParam (vec3 origin, vec3 dir, vec3 v0, vec3 v1, vec3 v2, out float delta,
+    out float d1, out float d2, out float d3)
+  {
+    float a = v0.x-v1.x;
+    float b = v0.y-v1.y;
+    float c = v0.z-v1.z;
+    float d = v0.x-v2.x;
+    float e = v0.y-v2.y;
+    float f = v0.z-v2.z;
+    float g = dir.x;
+    float h = dir.y;
+    float i = dir.z;
+    float j = v0.x - origin.x;
+    float k = v0.y - origin.y;
+    float l = v0.z - origin.z;
+    delta = a * e * i + d * h * c + g * b * f - c * e * g - f * h * a - i * b * d;
+    d1 = j * e * i + d * h * l + g * k * f - l * e * g - f * h * j - i * k * d;
+    d2 = a * k * i + j * h * c + g * b * l - c * k * g - l * h * a - i * b * j;
+    d3 = a * e * l + d * k * c + j * b * f - c * e * j - f * k * a - l * b * d;
+  }
+
+  //find the first intersection of the camera ray, if no intersection, return false
+  void findfirstIntersection (vec3 eye, vec3 dir, out vec3 location, out vec3 color1, out vec3 color2, out bool firstIntersection, out vec3 normal)
+  {
+    float delta, d1, d2, d3;
+    float mint = 100000000000000.0;
+    firstIntersection = false;
+    for (int i = 0; i < MAX_TRIANGLES; i++)
+    {
+      if (i >= numTriangles){
+        break;
+      }
+      ivec4 indices = triangleIndices[i];
+      vec3 v0 = texture2D(vertexPositions, vec2((float(indices.x) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      vec3 v1 = texture2D(vertexPositions, vec2((float(indices.y) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      vec3 v2 = texture2D(vertexPositions, vec2((float(indices.z) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      getTriangleParam(eye, dir, v0, v1, v2, delta, d1, d2, d3);
+      if (delta != 0.0)
+      {
+        float beta = d1 / delta;
+        float gama = d2 / delta;
+        float alpha = 1.0 - beta - gama;
+        float t = d3 / delta;
+        if ((t >= 0.0) && (alpha >= 0.0) && (beta >= 0.0) && (gama >= 0.0))
+        {
+          vec3 l1 = v1 - v0;
+          vec3 l2 = v2 - v1;
+          vec3 nor = cross(l1, l2);
+          nor = nor * (1.0 / length(nor));
+          if (t <= mint)
+          {
+            mint = t;
+            location = v0 * alpha + v1 * beta + v2 * gama;
+            firstIntersection = true;
+            color1 = texture2D(triangleColors, vec2((float(indices.w) + 0.5) / colorTextureSize, 0.5)).xyz;
+            color2 = (nor + vec3(1.0, 1.0, 1.0)) * 0.5;
+            normal = nor;
+          }
+        }
+      }
+    }
+  }
+
+  //find if there is any intersection of shadowray
+  void anyIntersection (float end, vec3 location, vec3 direction, out bool intersect)
+  {
+    intersect = false;
+    for (int j = 0; j < MAX_TRIANGLES; j++)
+    {
+      if (j >= numTriangles) {
+        break;
+      }
+      ivec4 indices_ = triangleIndices[j];
+      vec3 v0_ = texture2D(vertexPositions, vec2((float(indices_.x) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      vec3 v1_ = texture2D(vertexPositions, vec2((float(indices_.y) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      vec3 v2_ = texture2D(vertexPositions, vec2((float(indices_.z) + 0.5) / vertexTextureSize, 0.5)).xyz;
+      float delta_, d1_, d2_, d3_;
+      getTriangleParam(location, direction, v0_, v1_, v2_, delta_, d1_, d2_, d3_);
+      if (delta_ != 0.0)
+      {
+        float beta_ = d1_ / delta_;
+        float gama_ = d2_ / delta_;
+        float alpha_ = 1.0 - beta_ - gama_;
+        float t_ = d3_ / delta_;
+        if ((t_ >= 0.0) && (t_ < end) && (alpha_ >= 0.0) && (beta_ >= 0.0) && (gama_ >= 0.0)){
+          intersect = true;
+          break;
+        }
+      }
+    }
+  }
+
+  void main() {
+    vec3 color = vec3(r, g, b); //set color as background color
+    vec3 dir;
+    bool firstIntersection;
+    getdirection(eye, target, up, Fov, geom_texCoord, dir); // get direction of the camera ray
+    vec3 location;
+    vec3 color1, color2, color3, color4;
+    float visibility;
+    vec3 normal;
+    float max;
+    float r;
+    findfirstIntersection (eye, dir, location, color1, color2, firstIntersection, normal); // find the first intersection of the camera ray
+    if (firstIntersection == true){   // if the pixel is intersected by the camera ray, then consider the shadow
+      bool intersect;
+      vec3 shadow_dir = lightposition - location;
+      float shadow_end = length(shadow_dir);
+      r = length(shadow_dir);
+      shadow_dir = shadow_dir * (1.0 / length(shadow_dir));
+      float shadow_start = 0.00001;
+      location = location + shadow_dir * shadow_start;
+      if (dot(normal, shadow_dir) >= 0.0){
+        max = dot(normal, shadow_dir);
+      }
+      else{
+        max = 0.0;
+      }
+      anyIntersection (shadow_end, location, shadow_dir, intersect); // find if there is any intersection of shadowray
+      if (intersect == false){
+        color3 = vec3 (1.0, 1.0, 1.0);
+        visibility = 1.0;
+      }
+      else{
+        color3 = vec3 (0.0, 0.0, 0.0);
+        visibility = 0.0;
+      }
+      color4 = color1 * visibility * max * lightintensity * (1.0 / (r * r));
+
+      if (mode == 1) {
+        color = color1;
+      }
+      else if (mode == 2){
+        color = color2;
+      }
+      else if (mode == 3) {
+        color = color3;
+      }
+      else{
+        color = color4;
+      }
+    }
+    gl_FragColor = vec4(color, 1.0);
+  }
+</script>
+
+<script>
+    function initializeWebGL(canvasName) {
+        var canvas = $("#" + canvasName);
+        // Getting WebGL context the right way
+        var gl = null;
+        try {
+            gl = canvas[0].getContext("experimental-webgl");
+            if (!gl) {
+                gl = canvas[0].getContext("webgl");
+            }
+        } catch (error) {
+            // NO-OP
+        }
+        if (!gl) {
+            alert("Could not get WebGL context!");
+            throw new Error("Could not get WebGL context!");
+        }
+        return gl;
+    }
+    function createShader(gl, shaderScriptId) {
+       var shaderScript = $("#" + shaderScriptId);
+       var shaderSource = shaderScript[0].text;
+       var shaderType = null;
+       if (shaderScript[0].type == "x-shader/x-vertex") {
+           shaderType = gl.VERTEX_SHADER;
+       } else if (shaderScript[0].type == "x-shader/x-fragment") {
+           shaderType = gl.FRAGMENT_SHADER;
+       } else {
+           throw new Error("Invalid shader type: " + shaderScript[0].type)
+       }
+       var shader = gl.createShader(shaderType);
+       gl.shaderSource(shader, shaderSource);
+       gl.compileShader(shader);
+       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+           var infoLog = gl.getShaderInfoLog(shader);
+           gl.deleteShader(shader);
+           throw new Error("An error occurred compiling the shader: " + infoLog);
+       } else {
+           return shader;
+       }
+   }
+   function createGlslProgram(gl, vertexShaderId, fragmentShaderId) {
+       var program = gl.createProgram();
+       gl.attachShader(program, createShader(gl, vertexShaderId));
+       gl.attachShader(program, createShader(gl, fragmentShaderId));
+       gl.linkProgram(program);
+       gl.validateProgram(program);
+       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+           var infoLog = gl.getProgramInfoLog(program);
+           gl.deleteProgram(program);
+           throw new Error("An error occurred linking the program: " + infoLog);
+       } else {
+           return program;
+       }
+   }
+   function create1DVec3Texture(gl, data) {
+       var texture = gl.createTexture();
+       var ext = gl.getExtension('OES_texture_float');
+       gl.bindTexture(gl.TEXTURE_2D, texture);
+       var dataArray = new Float32Array(data);
+       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, data.length / 3, 1, 0, gl.RGB, gl.FLOAT, dataArray);
+       gl.bindTexture(gl.TEXTURE_2D, null);
+       return texture;
+   }
+   function runCanvas(canvasName, vertexShaderName, fragmentShaderName, prepareProgram) {
+       var gl = initializeWebGL(canvasName);
+       var program = createGlslProgram(gl, vertexShaderName, fragmentShaderName);
+       program.numTriangles = gl.getUniformLocation(program, "numTriangles");
+       program.vertexTextureSize = gl.getUniformLocation(program, "vertexTextureSize");
+       program.colorTextureSize = gl.getUniformLocation(program, "colorTextureSize");
+       program.triangleIndices = gl.getUniformLocation(program, "triangleIndices");
+       program.vertexPositions = gl.getUniformLocation(program, "vertexPositions");
+       program.triangleColors = gl.getUniformLocation(program, "triangleColors");
+       var vertexData = [
+           -1.0, -1.0, 0.0,  // Lower left
+           0.0,  0.0,
+           1.0, -1.0, 0.0,  // Lower right
+           1.0,  0.0,
+           1.0,  1.0, 0.0,  // Top right
+           1.0,  1.0,
+           -1.0,  1.0, 0.0,  // Top left
+           0.0,  1.0
+       ];
+       var vertexArray = new Float32Array(vertexData);
+       var vertexBuffer = gl.createBuffer();
+       gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
+       gl.bindBuffer(gl.ARRAY_BUFFER, null);
+       var indexData = [0, 1, 2, 0, 2, 3];
+       var indexArray = new Uint16Array(indexData);
+       var indexBuffer = gl.createBuffer();
+       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
+       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+       function updateWebGL() {
+         gl.clearColor(0.0, 0.0, 0.0, 0.0);
+         gl.clear(gl.COLOR_BUFFER_BIT);
+         gl.useProgram(program);
+         prepareProgram(gl, program);
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+         var vertPositionLocation = gl.getAttribLocation(program, "vert_position");
+         gl.enableVertexAttribArray(vertPositionLocation);
+         gl.vertexAttribPointer(vertPositionLocation, 3, gl.FLOAT, false, 4*5, 0);
+         var vertTextureLocation = gl.getAttribLocation(program, "vert_texCoord");
+         gl.enableVertexAttribArray(vertTextureLocation);
+         gl.vertexAttribPointer(vertTextureLocation, 2, gl.FLOAT, false, 4*5, 4*3);
+         gl.bindBuffer(gl.ARRAY_BUFFER, null);
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+         gl.useProgram(null);
+         window.requestAnimationFrame(updateWebGL);
+       }
+       window.requestAnimationFrame(updateWebGL);
+   }
+   runCanvas("webglCanvas", "vertexShader", "fragmentShader", function(gl, program) {
+       // NO-OP
+       var rgb = getBackgroundColor();
+       var r = rgb[0];
+       var g = rgb[1];
+       var b = rgb[2];
+       var mode = getRenderMode();
+       var eye = getCameraEye();
+       var target = getCameraTarget();
+       var up = getCameraUp();
+       var Fov = getCameraFov();
+       var scene = getScene();
+       var numTriangles = scene.numTriangles;
+       var numPositions = scene.vertexPositions.length / 3;
+       var numColors = scene.triangleColors.length / 3;
+       var vertexPositions = scene.vertexPositions;
+       var triangleColors = scene.triangleColors;
+       var triangleIndices = scene.triangleIndices;
+       var lightposition = getLightPosition();
+       var lightintensity = getLightIntensity();
+       var vertexPositionTexture = create1DVec3Texture(gl, vertexPositions);
+       var triangleColorTexture = create1DVec3Texture(gl, triangleColors);
+
+       gl.uniform1i(gl.getUniformLocation(program, "mode"), mode);
+       gl.uniform1f(gl.getUniformLocation(program, "r"), r);
+       gl.uniform1f(gl.getUniformLocation(program, "g"), g);
+       gl.uniform1f(gl.getUniformLocation(program, "b"), b);
+       gl.uniform3f(gl.getUniformLocation(program, "eye"), eye[0], eye[1], eye[2]);
+       gl.uniform3f(gl.getUniformLocation(program, "target"), target[0], target[1], target[2]);
+       gl.uniform3f(gl.getUniformLocation(program, "up"), up[0], up[1], up[2]);
+       gl.uniform1f(gl.getUniformLocation(program, "Fov"), Fov);
+       gl.uniform3f(gl.getUniformLocation(program, "lightposition"), lightposition[0], lightposition[1], lightposition[2]);
+       gl.uniform3f(gl.getUniformLocation(program, "lightintensity"), lightintensity[0], lightintensity[1], lightintensity[2]);
+       if (program.numTriangles != null) {
+         gl.uniform1i(program.numTriangles, numTriangles);
+       }
+       if (program.vertexPositions != null) {
+         gl.activeTexture(gl.TEXTURE0);
+         gl.bindTexture(gl.TEXTURE_2D, vertexPositionTexture);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+         gl.uniform1i(program.vertexPositions, 0);
+       }
+       if (program.triangleColors != null) {
+         gl.activeTexture(gl.TEXTURE1);
+         gl.bindTexture(gl.TEXTURE_2D, triangleColorTexture);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+         gl.uniform1i(program.triangleColors, 1);
+       }
+       if (program.vertexTextureSize != null) {
+         gl.uniform1f(program.vertexTextureSize, numPositions);
+       }
+       if (program.colorTextureSize != null) {
+         gl.uniform1f(program.colorTextureSize, numColors);
+       }
+       if (program.triangleIndices != null) {
+         gl.uniform4iv(program.triangleIndices, triangleIndices);
+       }
+   });
+</script>
+</body>
+</html>
