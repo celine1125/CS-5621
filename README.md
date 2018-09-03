@@ -8,9 +8,9 @@ Computer Graphics Practicum
 
 #### Full Shading:
 
-![img1](.result/full.png)
-![img2](.result/full2.png)
-![img3](.result/full3.png)
+![img1](.results/full.png)
+![img2](.results/full2.png)
+![img3](.results/full3.png)
 
 #### Without env:
 
